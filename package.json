@@ -1,16 +1,9 @@
-{
-  "name": "tanstack_start_ts",
-  "private": true,
-  "sideEffects": false,
-  "type": "module",
-  "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
-    "preview": "vite preview",
-    "lint": "eslint .",
-    "format": "prettier --write ."
-  },
+"scripts": {
+  "dev": "vinxi dev",
+  "build": "vinxi build",
+  "start": "vinxi start",
+  "preview": "vinxi start"
+}
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
     "@hookform/resolvers": "^5.2.2",
