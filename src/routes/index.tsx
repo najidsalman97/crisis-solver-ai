@@ -144,7 +144,7 @@ function Dashboard() {
           title: reportTitle,
           total_reviews: reviews.length,
           severity: result.severity,
-          data: result as unknown as Record<string, unknown>,
+          data: result as never,
         })
         .then(({ error }) => {
           if (error) console.warn("Save failed", error);
