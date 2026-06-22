@@ -725,7 +725,7 @@ function Footer() {
     <footer className="border-t border-border mt-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
         <div>© {new Date().getFullYear()} CrisisRoom AI · Built for product crisis teams</div>
-        <div className="font-mono">Powered by Gemini · Lovable Cloud</div>
+        <div className="font-mono">Powered by Gemini</div>
       </div>
     </footer>
   );
