@@ -1,7 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useRef, useState } from "react";
-import Papa from "papaparse";
 import { toast } from "sonner";
 import {
   Upload,
@@ -18,11 +17,16 @@ import {
   ShieldAlert,
   Loader2,
   ArrowRight,
+  Settings,
 } from "lucide-react";
 import { analyzeReviews, type Analysis } from "@/lib/analyze.functions";
 import { exportPdf, exportDocx, exportJiraCsv, downloadBlob } from "@/lib/exporters";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { parseFile, filterByDateRange, type ReviewItem } from "@/lib/file-parser";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,24 +41,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Dashboard,
 });
-
-const SAMPLE_REVIEWS = [
-  "App crashes every time I try to upload a profile photo on iOS 17. Lost my work twice today.",
-  "Login with Google has been broken since the last update — keeps redirecting in a loop.",
-  "Charged twice for the same subscription. Support hasn't responded in 4 days.",
-  "Notifications are 6 hours late. Missed an important alert from my team.",
-  "Dark mode is gorgeous, love the redesign!",
-  "Export to PDF produces blank pages on documents over 10 MB.",
-  "App is so slow on Android, takes 30 seconds to open a chat.",
-  "Two-factor authentication codes never arrive via SMS.",
-  "Calendar sync deleted all my events overnight. This is a disaster.",
-  "Search returns no results even for items I clearly have.",
-  "Crashes on launch after the 4.2 update. Reinstalled twice, no fix.",
-  "I keep getting logged out every few hours, super annoying.",
-  "Great customer support! Resolved my issue in minutes.",
-  "Push notifications never work on Pixel 8.",
-  "Billing page shows the wrong invoice total.",
-];
 
 function severityColor(s: string) {
   switch (s) {
@@ -82,12 +68,24 @@ function severityBg(s: string) {
 }
 
 function Dashboard() {
+  const navigate = useNavigate();
   const analyze = useServerFn(analyzeReviews);
-  const [reviews, setReviews] = useState<string[]>([]);
+  const [allReviews, setAllReviews] = useState<ReviewItem[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const filteredReviews = useMemo(() => {
+    const reviews = filterByDateRange(
+      allReviews,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined
+    );
+    return reviews.map((r) => r.text);
+  }, [allReviews, startDate, endDate]);
 
   const reportTitle = useMemo(
     () =>
@@ -97,59 +95,92 @@ function Dashboard() {
     [fileName]
   );
 
-  function handleFile(file: File) {
+  async function handleFile(file: File) {
     setFileName(file.name);
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const rows = results.data;
-        // Pick the most "text-like" column
-        const sample = rows[0] || {};
-        const cols = Object.keys(sample);
-        const textCol =
-          cols.find((c) => /review|comment|text|feedback|message|ticket|body/i.test(c)) ||
-          cols.find((c) => typeof sample[c] === "string" && (sample[c] || "").length > 20) ||
-          cols[0];
-        const extracted = rows
-          .map((r) => (textCol ? r[textCol] : Object.values(r).join(" ")))
-          .filter((x): x is string => !!x && x.trim().length > 3);
-        setReviews(extracted);
-        toast.success(`Loaded ${extracted.length} reviews from ${file.name}`);
-      },
-      error: (err) => toast.error(`CSV error: ${err.message}`),
-    });
+    setAnalysis(null);
+    try {
+      const { reviews, rawReviews } = await parseFile(file);
+      setAllReviews(reviews);
+      toast.success(`Loaded ${rawReviews.length} reviews from ${file.name}`);
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to parse file");
+    }
   }
 
   function loadSample() {
-    setReviews(SAMPLE_REVIEWS);
+    const SAMPLE_REVIEWS = [
+      "App crashes every time I try to upload a profile photo on iOS 17. Lost my work twice today.",
+      "Login with Google has been broken since the last update — keeps redirecting in a loop.",
+      "Charged twice for the same subscription. Support hasn't responded in 4 days.",
+      "Notifications are 6 hours late. Missed an important alert from my team.",
+      "Dark mode is gorgeous, love the redesign!",
+      "Export to PDF produces blank pages on documents over 10 MB.",
+      "App is so slow on Android, takes 30 seconds to open a chat.",
+      "Two-factor authentication codes never arrive via SMS.",
+      "Calendar sync deleted all my events overnight. This is a disaster.",
+      "Search returns no results even for items I clearly have.",
+      "Crashes on launch after the 4.2 update. Reinstalled twice, no fix.",
+      "I keep getting logged out every few hours, super annoying.",
+      "Great customer support! Resolved my issue in minutes.",
+      "Push notifications never work on Pixel 8.",
+      "Billing page shows the wrong invoice total.",
+    ];
+    setAllReviews(
+      SAMPLE_REVIEWS.map((text) => ({ text, date: undefined, source: "sample" }))
+    );
     setFileName("sample-reviews.csv");
+    setAnalysis(null);
     toast.success("Loaded 15 sample reviews");
   }
 
   async function runAnalysis() {
-    if (reviews.length === 0) {
-      toast.error("Upload a CSV or load the sample first");
+    if (filteredReviews.length === 0) {
+      toast.error("No reviews to analyze");
       return;
     }
     setLoading(true);
     setAnalysis(null);
     try {
-      const result = await analyze({ data: { reviews } });
-      setAnalysis(result);
-      // Persist (best-effort, don't block)
-      supabase
-        .from("reports")
-        .insert({
-          title: reportTitle,
-          total_reviews: reviews.length,
-          severity: result.severity,
-          data: result as never,
-        })
-        .then(({ error }) => {
-          if (error) console.warn("Save failed", error);
-        });
-      toast.success("Crisis report generated");
+      // Get API keys from localStorage
+      const settings = JSON.parse(localStorage.getItem("crisisroom-ai-settings") || "{}");
+
+      // Prepare headers with API keys
+      const headers: Record<string, string> = {};
+      if (settings.geminiKey) headers["x-gemini-key"] = settings.geminiKey;
+      if (settings.openaiKey) headers["x-openai-key"] = settings.openaiKey;
+      if (settings.openrouterKey) headers["x-openrouter-key"] = settings.openrouterKey;
+      if (settings.provider) headers["x-ai-provider"] = settings.provider;
+
+      // Create a custom fetch wrapper to inject headers
+      const originalFetch = window.fetch;
+      window.fetch = async (input, init) => {
+        const newInit = {
+          ...init,
+          headers: { ...headers, ...(init?.headers || {}) },
+        };
+        return originalFetch(input, newInit);
+      };
+
+      try {
+        const result = await analyze({ data: { reviews: filteredReviews } });
+        setAnalysis(result);
+        // Persist (best-effort, don't block)
+        supabase
+          .from("reports")
+          .insert({
+            title: reportTitle,
+            total_reviews: filteredReviews.length,
+            severity: result.severity,
+            data: result as never,
+          })
+          .then(({ error }) => {
+            if (error) console.warn("Save failed", error);
+          });
+        toast.success("Crisis report generated");
+      } finally {
+        window.fetch = originalFetch;
+      }
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Analysis failed");
@@ -161,7 +192,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen">
       <Toaster theme="dark" position="top-right" richColors />
-      <Header />
+      <Header onSettingsClick={() => navigate({ to: "/settings" })} />
 
       <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-24">
         <Hero />
@@ -170,14 +201,19 @@ function Dashboard() {
           <UploadCard
             fileRef={fileRef}
             fileName={fileName}
-            reviewsCount={reviews.length}
+            reviewsCount={filteredReviews.length}
+            totalReviewsCount={allReviews.length}
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
             loading={loading}
             onPickFile={() => fileRef.current?.click()}
             onFile={handleFile}
             onLoadSample={loadSample}
             onAnalyze={runAnalysis}
           />
-          <MetricsPanel reviewsCount={reviews.length} analysis={analysis} loading={loading} />
+          <MetricsPanel reviewsCount={filteredReviews.length} analysis={analysis} loading={loading} />
         </section>
 
         {loading && <LoadingState />}
@@ -206,7 +242,7 @@ function Dashboard() {
   );
 }
 
-function Header() {
+function Header({ onSettingsClick }: { onSettingsClick: () => void }) {
   return (
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-[oklch(0.16_0.02_260/0.7)] border-b border-border">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -227,8 +263,16 @@ function Header() {
         <div className="hidden sm:flex items-center gap-3">
           <span className="chip">
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-            Gemini · Online
+            AI · Online
           </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSettingsClick}
+            title="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </header>
@@ -259,6 +303,11 @@ function UploadCard({
   fileRef,
   fileName,
   reviewsCount,
+  totalReviewsCount,
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange,
   loading,
   onPickFile,
   onFile,
@@ -268,6 +317,11 @@ function UploadCard({
   fileRef: React.RefObject<HTMLInputElement | null>;
   fileName: string;
   reviewsCount: number;
+  totalReviewsCount: number;
+  startDate: string;
+  endDate: string;
+  onStartDateChange: (date: string) => void;
+  onEndDateChange: (date: string) => void;
   loading: boolean;
   onPickFile: () => void;
   onFile: (f: File) => void;
@@ -275,11 +329,13 @@ function UploadCard({
   onAnalyze: () => void;
 }) {
   const [drag, setDrag] = useState(false);
+  const showFiltered = totalReviewsCount > 0 && totalReviewsCount !== reviewsCount;
+
   return (
     <div className="surface p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-display text-lg font-semibold">Intake</h3>
-        <span className="chip text-muted-foreground">CSV · Reviews · Tickets</span>
+        <span className="chip text-muted-foreground">CSV · XLSX · JSON · TXT</span>
       </div>
       <label
         onDragOver={(e) => {
@@ -304,15 +360,15 @@ function UploadCard({
           <Upload className="h-5 w-5 text-primary" />
         </div>
         <div className="text-center">
-          <div className="font-medium">Drop CSV here or click to upload</div>
+          <div className="font-medium">Drop file here or click to upload</div>
           <div className="text-xs text-muted-foreground mt-1">
-            Any CSV with a text/review/comment column
+            CSV, XLSX, JSON, or TXT with reviews
           </div>
         </div>
         <input
           ref={fileRef}
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,.xlsx,.xls,.json,.txt,text/csv,application/json,text/plain"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -327,7 +383,48 @@ function UploadCard({
             <FileText className="h-4 w-4 text-accent shrink-0" />
             <span className="truncate font-mono text-xs">{fileName}</span>
           </div>
-          <span className="chip text-muted-foreground">{reviewsCount} rows</span>
+          <span className="chip text-muted-foreground">
+            {totalReviewsCount} {showFiltered ? `→ ${reviewsCount}` : ""}rows
+          </span>
+        </div>
+      )}
+
+      {totalReviewsCount > 0 && (
+        <div className="mt-4 space-y-3">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Date Filter (Optional)
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="start-date" className="text-xs mb-1 block">
+                Start Date
+              </Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => onStartDateChange(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label htmlFor="end-date" className="text-xs mb-1 block">
+                End Date
+              </Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => onEndDateChange(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+          {showFiltered && (
+            <div className="text-xs text-muted-foreground">
+              {reviewsCount} of {totalReviewsCount} reviews match date range
+            </div>
+          )}
         </div>
       )}
 

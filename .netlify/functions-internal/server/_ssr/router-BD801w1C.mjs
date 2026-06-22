@@ -1,11 +1,13 @@
 import { o as __toESM } from "../_runtime.mjs";
 import { _ as useRouter, c as HeadContent, d as Outlet, f as lazyRouteComponent, h as Link, m as createRootRouteWithContext, p as createFileRoute, s as Scripts, u as createRouter } from "../_libs/@tanstack/react-router+[...].mjs";
-import { n as require_jsx_runtime, r as require_react, t as QueryClientProvider } from "../_libs/react+tanstack__react-query.mjs";
+import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
+import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as QueryClient } from "../_libs/tanstack__query-core.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-D-gNr5_V.js
+import { t as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/router-BD801w1C.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-Bmlbimof.css";
+var styles_default = "/assets/styles-D4dg6pZk.css";
 function reportError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	try {
@@ -81,7 +83,7 @@ function ErrorComponent({ error, reset }) {
 		})
 	});
 }
-var Route$1 = createRootRouteWithContext()({
+var Route$2 = createRootRouteWithContext()({
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },
@@ -147,25 +149,42 @@ function RootShell({ children }) {
 	});
 }
 function RootComponent() {
-	const { queryClient } = Route$1.useRouteContext();
+	const { queryClient } = Route$2.useRouteContext();
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(QueryClientProvider, {
 		client: queryClient,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Outlet, {})
 	});
 }
-var $$splitComponentImporter = () => import("./routes-Smr4KMRk.mjs");
-var rootRouteChildren = { IndexRoute: createFileRoute("/")({
+var $$splitComponentImporter$1 = () => import("./settings-igIuG5cm.mjs");
+var Route$1 = createFileRoute("/settings")({
+	head: () => ({ meta: [{ title: "Settings - CrisisRoom AI" }, {
+		name: "description",
+		content: "Configure AI providers and API keys"
+	}] }),
+	component: lazyRouteComponent($$splitComponentImporter$1, "component")
+});
+var $$splitComponentImporter = () => import("./routes-DlpVxpWe.mjs");
+var Route = createFileRoute("/")({
 	head: () => ({ meta: [{ title: "CrisisRoom AI — AI crisis response for product teams" }, {
 		name: "description",
 		content: "Upload customer reviews. Get an executive crisis report, Jira tickets, and customer comms in minutes."
 	}] }),
 	component: lazyRouteComponent($$splitComponentImporter, "component")
-}).update({
-	id: "/",
-	path: "/",
-	getParentRoute: () => Route$1
-}) };
-var routeTree = Route$1._addFileChildren(rootRouteChildren)._addFileTypes();
+});
+var SettingsRoute = Route$1.update({
+	id: "/settings",
+	path: "/settings",
+	getParentRoute: () => Route$2
+});
+var rootRouteChildren = {
+	IndexRoute: Route.update({
+		id: "/",
+		path: "/",
+		getParentRoute: () => Route$2
+	}),
+	SettingsRoute
+};
+var routeTree = Route$2._addFileChildren(rootRouteChildren)._addFileTypes();
 var getRouter = () => {
 	return createRouter({
 		routeTree,

@@ -2,7 +2,20 @@ import { t as createMiddleware } from "./createStart-Dt05N14y.mjs";
 import { D as isRedirect, k as parseRedirect } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as defaultSerovalPlugins, c as makeSerovalPlugin, i as mergeHeaders } from "../_libs/@tanstack/router-core+[...].mjs";
 import { AsyncLocalStorage } from "node:async_hooks";
-//#region node_modules/.nitro/vite/services/ssr/assets/esm-Dova13aH.js
+//#region node_modules/.nitro/vite/services/ssr/assets/esm-zB9EGFGL.js
+var manifest = { "e6388d3d293d1c3a957936e0ad045131ee2a3b3e83d4c0b3cc3c45988b82654d": {
+	functionName: "analyzeReviews_createServerFn_handler",
+	importer: () => import("./analyze.functions-mUI7CjC7.mjs")
+} };
+async function getServerFnById(id, access) {
+	const serverFnInfo = manifest[id];
+	if (!serverFnInfo) throw new Error("Server function info not found for " + id);
+	const fnModule = serverFnInfo.module ?? await serverFnInfo.importer();
+	if (!fnModule) throw new Error("Server function module not resolved for " + id);
+	const action = fnModule[serverFnInfo.functionName];
+	if (!action) throw new Error("Server function module export not resolved for serverFn ID: " + id);
+	return action;
+}
 var TSS_FORMDATA_CONTEXT = "__TSS_CONTEXT";
 var TSS_SERVER_FUNCTION = Symbol.for("TSS_SERVER_FUNCTION");
 var TSS_SERVER_FUNCTION_FACTORY = Symbol.for("TSS_SERVER_FUNCTION_FACTORY");
@@ -315,4 +328,4 @@ function getDefaultSerovalPlugins() {
 	return [...(getStartOptions()?.serializationAdapters)?.map(makeSerovalPlugin) ?? [], ...defaultSerovalPlugins];
 }
 //#endregion
-export { X_TSS_RAW_RESPONSE as a, createNullProtoObject as c, getDefaultSerovalPlugins as d, getStartContext as f, TSS_SERVER_FUNCTION as i, createServerFn as l, safeObjectMerge as m, TSS_CONTENT_TYPE_FRAMED_VERSIONED as n, X_TSS_SERIALIZED as o, runWithStartContext as p, TSS_FORMDATA_CONTEXT as r, createCsrfMiddleware as s, FrameType as t, flattenMiddlewares as u };
+export { X_TSS_RAW_RESPONSE as a, createNullProtoObject as c, getDefaultSerovalPlugins as d, getServerFnById as f, safeObjectMerge as h, TSS_SERVER_FUNCTION as i, createServerFn as l, runWithStartContext as m, TSS_CONTENT_TYPE_FRAMED_VERSIONED as n, X_TSS_SERIALIZED as o, getStartContext as p, TSS_FORMDATA_CONTEXT as r, createCsrfMiddleware as s, FrameType as t, flattenMiddlewares as u };

@@ -1,20 +1,21 @@
 import { o as __toESM } from "../_runtime.mjs";
-import { D as isRedirect, _ as useRouter } from "../_libs/@tanstack/react-router+[...].mjs";
-import { i as TSS_SERVER_FUNCTION, l as createServerFn } from "./esm-Dova13aH.mjs";
-import { n as objectType, r as stringType, t as arrayType } from "../_libs/zod.mjs";
-import { n as require_jsx_runtime, r as require_react } from "../_libs/react+tanstack__react-query.mjs";
-import { t as getServerFnById } from "../__23tanstack-start-server-fn-resolver-D1JpLPyZ.mjs";
+import { D as isRedirect, _ as useRouter, g as useNavigate } from "../_libs/@tanstack/react-router+[...].mjs";
+import { n as analyzeReviews } from "./analyze.functions-C6FZidrO.mjs";
+import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
+import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as supabase } from "./client-UxEtH3WB.mjs";
-import { t as require_papaparse } from "../_libs/papaparse.mjs";
-import { n as toast, t as Toaster } from "../_libs/sonner.mjs";
-import { a as ShieldAlert, c as Mail, d as FileText, f as Download, i as Sparkles, l as LoaderCircle, m as Activity, n as TriangleAlert, o as MessageSquare, p as ArrowRight, r as Ticket, s as Megaphone, t as Upload, u as Globe } from "../_libs/lucide-react.mjs";
+import { n as toast } from "../_libs/sonner.mjs";
+import { i as Toaster$1, n as Input, r as Label, t as Button } from "./label-2QMmVB9m.mjs";
+import { C as Activity, _ as Download, a as Sparkles, d as Mail, f as LoaderCircle, i as Ticket, l as MessageSquare, m as FileText, n as TriangleAlert, o as ShieldAlert, p as Globe, s as Settings, t as Upload, u as Megaphone, x as ArrowRight } from "../_libs/lucide-react.mjs";
 import { t as require_jspdf_node_min } from "../_libs/jspdf.mjs";
 import { a as Paragraph, i as Packer, n as File, o as TextRun, r as HeadingLevel, t as AlignmentType } from "../_libs/docx.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-Smr4KMRk.js
+import { t as require_papaparse } from "../_libs/papaparse.mjs";
+import { n as utils, t as readSync } from "../_libs/xlsx.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-DlpVxpWe.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var import_papaparse = /* @__PURE__ */ __toESM(require_papaparse());
 var import_jspdf_node_min = /* @__PURE__ */ __toESM(require_jspdf_node_min());
+var import_papaparse = /* @__PURE__ */ __toESM(require_papaparse());
 function useServerFn(serverFn) {
 	const router = useRouter();
 	return import_react.useCallback(async (...args) => {
@@ -31,19 +32,6 @@ function useServerFn(serverFn) {
 		}
 	}, [router, serverFn]);
 }
-var createSsrRpc = (functionId) => {
-	const url = "/_serverFn/" + functionId;
-	const serverFnMeta = { id: functionId };
-	const fn = async (...args) => {
-		return (await getServerFnById(functionId, { origin: "server" }))(...args);
-	};
-	return Object.assign(fn, {
-		url,
-		serverFnMeta,
-		[TSS_SERVER_FUNCTION]: true
-	});
-};
-var analyzeReviews = createServerFn({ method: "POST" }).inputValidator((input) => objectType({ reviews: arrayType(stringType()).min(1).max(2e3) }).parse(input)).handler(createSsrRpc("e6388d3d293d1c3a957936e0ad045131ee2a3b3e83d4c0b3cc3c45988b82654d"));
 function exportJiraCsv(analysis) {
 	const csv = [[
 		"Summary",
@@ -175,35 +163,195 @@ async function exportDocx(analysis, title) {
 	const doc = new File({ sections: [{ children }] });
 	return await Packer.toBlob(doc);
 }
-var Toaster$1 = ({ ...props }) => {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Toaster, {
-		className: "toaster group",
-		toastOptions: { classNames: {
-			toast: "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-			description: "group-[.toast]:text-muted-foreground",
-			actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-			cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground"
-		} },
-		...props
+/**
+* Intelligently detect and extract text column from CSV data
+*/
+function extractTextColumn(rows) {
+	if (!rows.length) return "";
+	const sample = rows[0];
+	const cols = Object.keys(sample);
+	return cols.find((c) => /review|comment|text|feedback|message|ticket|body|content|description/i.test(c)) || cols.find((c) => typeof sample[c] === "string" && (sample[c] || "").length > 20) || cols[0] || "";
+}
+/**
+* Parse CSV file
+*/
+function parseCSV(file) {
+	return new Promise((resolve, reject) => {
+		import_papaparse.default.parse(file, {
+			header: true,
+			skipEmptyLines: true,
+			complete: (results) => {
+				try {
+					const rows = results.data;
+					const textCol = extractTextColumn(rows);
+					const reviews = rows.map((r) => {
+						return {
+							text: (textCol ? r[textCol] : Object.values(r).join(" ")).trim() || "",
+							date: r.date || r.created_at || r.timestamp || void 0,
+							source: "csv"
+						};
+					}).filter((r) => r.text.length > 3);
+					resolve({
+						reviews,
+						rawReviews: reviews.map((r) => r.text)
+					});
+				} catch (err) {
+					reject(err);
+				}
+			},
+			error: (err) => reject(/* @__PURE__ */ new Error(`CSV parse error: ${err.message}`))
+		});
 	});
-};
-var SAMPLE_REVIEWS = [
-	"App crashes every time I try to upload a profile photo on iOS 17. Lost my work twice today.",
-	"Login with Google has been broken since the last update — keeps redirecting in a loop.",
-	"Charged twice for the same subscription. Support hasn't responded in 4 days.",
-	"Notifications are 6 hours late. Missed an important alert from my team.",
-	"Dark mode is gorgeous, love the redesign!",
-	"Export to PDF produces blank pages on documents over 10 MB.",
-	"App is so slow on Android, takes 30 seconds to open a chat.",
-	"Two-factor authentication codes never arrive via SMS.",
-	"Calendar sync deleted all my events overnight. This is a disaster.",
-	"Search returns no results even for items I clearly have.",
-	"Crashes on launch after the 4.2 update. Reinstalled twice, no fix.",
-	"I keep getting logged out every few hours, super annoying.",
-	"Great customer support! Resolved my issue in minutes.",
-	"Push notifications never work on Pixel 8.",
-	"Billing page shows the wrong invoice total."
-];
+}
+/**
+* Parse Excel file (XLSX/XLS)
+*/
+function parseExcel(file) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const data = e.target?.result;
+				const workbook = readSync(data, { type: "array" });
+				const sheetName = workbook.SheetNames[0];
+				const worksheet = workbook.Sheets[sheetName];
+				const rows = utils.sheet_to_json(worksheet);
+				if (!rows.length) {
+					resolve({
+						reviews: [],
+						rawReviews: []
+					});
+					return;
+				}
+				const textCol = extractTextColumn(rows);
+				const reviews = rows.map((r) => {
+					return {
+						text: (textCol ? r[textCol] : Object.values(r).join(" ")).trim() || "",
+						date: r.date || r.created_at || r.timestamp || void 0,
+						source: "excel"
+					};
+				}).filter((r) => r.text.length > 3);
+				resolve({
+					reviews,
+					rawReviews: reviews.map((r) => r.text)
+				});
+			} catch (err) {
+				reject(err);
+			}
+		};
+		reader.onerror = () => reject(/* @__PURE__ */ new Error("Failed to read file"));
+		reader.readAsArrayBuffer(file);
+	});
+}
+/**
+* Parse JSON file
+*/
+function parseJSON(file) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const text = e.target?.result;
+				let data = JSON.parse(text);
+				if (!Array.isArray(data)) {
+					const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]));
+					if (arrayKey) data = data[arrayKey];
+					else data = [data];
+				}
+				const reviews = data.map((item) => {
+					if (typeof item === "string") return {
+						text: item,
+						date: void 0,
+						source: "json"
+					};
+					if (typeof item === "object" && item !== null) {
+						const obj = item;
+						const text = obj.text || obj.review || obj.comment || obj.content || JSON.stringify(obj);
+						return {
+							text: String(text).trim(),
+							date: obj.date || obj.created_at || obj.timestamp ? String(obj.date || obj.created_at || obj.timestamp) : void 0,
+							source: "json"
+						};
+					}
+					return null;
+				}).filter((r) => r !== null && r.text.length > 3);
+				resolve({
+					reviews,
+					rawReviews: reviews.map((r) => r.text)
+				});
+			} catch (err) {
+				reject(err);
+			}
+		};
+		reader.onerror = () => reject(/* @__PURE__ */ new Error("Failed to read file"));
+		reader.readAsText(file);
+	});
+}
+/**
+* Parse TXT file (one review per line or paragraph)
+*/
+function parseTXT(file) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const text = e.target?.result;
+				const separator = text.includes("\n\n") ? "\n\n" : "\n";
+				const reviews = text.split(separator).map((l) => l.trim()).filter((l) => l.length > 3).map((text) => ({
+					text,
+					date: void 0,
+					source: "txt"
+				}));
+				resolve({
+					reviews,
+					rawReviews: reviews.map((r) => r.text)
+				});
+			} catch (err) {
+				reject(err);
+			}
+		};
+		reader.onerror = () => reject(/* @__PURE__ */ new Error("Failed to read file"));
+		reader.readAsText(file);
+	});
+}
+/**
+* Auto-detect file type and parse
+*/
+async function parseFile(file) {
+	const name = file.name.toLowerCase();
+	const type = file.type.toLowerCase();
+	if (name.endsWith(".csv") || type === "text/csv") return parseCSV(file);
+	if (name.endsWith(".xlsx") || type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") return parseExcel(file);
+	if (name.endsWith(".xls") || type === "application/vnd.ms-excel") return parseExcel(file);
+	if (name.endsWith(".json") || type === "application/json") return parseJSON(file);
+	if (name.endsWith(".txt") || type === "text/plain") return parseTXT(file);
+	try {
+		return await parseCSV(file);
+	} catch {
+		try {
+			return await parseJSON(file);
+		} catch {
+			return parseTXT(file);
+		}
+	}
+}
+/**
+* Filter reviews by date range
+*/
+function filterByDateRange(reviews, startDate, endDate) {
+	if (!startDate && !endDate) return reviews;
+	return reviews.filter((r) => {
+		if (!r.date) return true;
+		try {
+			const reviewDate = new Date(r.date);
+			if (startDate && reviewDate < startDate) return false;
+			if (endDate && reviewDate > endDate) return false;
+			return true;
+		} catch {
+			return true;
+		}
+	});
+}
 function severityColor(s) {
 	switch (s) {
 		case "Critical": return "text-critical";
@@ -221,54 +369,100 @@ function severityBg(s) {
 	}
 }
 function Dashboard() {
+	const navigate = useNavigate();
 	const analyze = useServerFn(analyzeReviews);
-	const [reviews, setReviews] = (0, import_react.useState)([]);
+	const [allReviews, setAllReviews] = (0, import_react.useState)([]);
 	const [fileName, setFileName] = (0, import_react.useState)("");
 	const [analysis, setAnalysis] = (0, import_react.useState)(null);
 	const [loading, setLoading] = (0, import_react.useState)(false);
+	const [startDate, setStartDate] = (0, import_react.useState)("");
+	const [endDate, setEndDate] = (0, import_react.useState)("");
 	const fileRef = (0, import_react.useRef)(null);
+	const filteredReviews = (0, import_react.useMemo)(() => {
+		return filterByDateRange(allReviews, startDate ? new Date(startDate) : void 0, endDate ? new Date(endDate) : void 0).map((r) => r.text);
+	}, [
+		allReviews,
+		startDate,
+		endDate
+	]);
 	const reportTitle = (0, import_react.useMemo)(() => fileName ? `Crisis Report — ${fileName.replace(/\.[^.]+$/, "")}` : "Crisis Report", [fileName]);
-	function handleFile(file) {
+	async function handleFile(file) {
 		setFileName(file.name);
-		import_papaparse.default.parse(file, {
-			header: true,
-			skipEmptyLines: true,
-			complete: (results) => {
-				const rows = results.data;
-				const sample = rows[0] || {};
-				const cols = Object.keys(sample);
-				const textCol = cols.find((c) => /review|comment|text|feedback|message|ticket|body/i.test(c)) || cols.find((c) => typeof sample[c] === "string" && (sample[c] || "").length > 20) || cols[0];
-				const extracted = rows.map((r) => textCol ? r[textCol] : Object.values(r).join(" ")).filter((x) => !!x && x.trim().length > 3);
-				setReviews(extracted);
-				toast.success(`Loaded ${extracted.length} reviews from ${file.name}`);
-			},
-			error: (err) => toast.error(`CSV error: ${err.message}`)
-		});
+		setAnalysis(null);
+		try {
+			const { reviews, rawReviews } = await parseFile(file);
+			setAllReviews(reviews);
+			toast.success(`Loaded ${rawReviews.length} reviews from ${file.name}`);
+		} catch (err) {
+			console.error(err);
+			toast.error(err instanceof Error ? err.message : "Failed to parse file");
+		}
 	}
 	function loadSample() {
-		setReviews(SAMPLE_REVIEWS);
+		setAllReviews([
+			"App crashes every time I try to upload a profile photo on iOS 17. Lost my work twice today.",
+			"Login with Google has been broken since the last update — keeps redirecting in a loop.",
+			"Charged twice for the same subscription. Support hasn't responded in 4 days.",
+			"Notifications are 6 hours late. Missed an important alert from my team.",
+			"Dark mode is gorgeous, love the redesign!",
+			"Export to PDF produces blank pages on documents over 10 MB.",
+			"App is so slow on Android, takes 30 seconds to open a chat.",
+			"Two-factor authentication codes never arrive via SMS.",
+			"Calendar sync deleted all my events overnight. This is a disaster.",
+			"Search returns no results even for items I clearly have.",
+			"Crashes on launch after the 4.2 update. Reinstalled twice, no fix.",
+			"I keep getting logged out every few hours, super annoying.",
+			"Great customer support! Resolved my issue in minutes.",
+			"Push notifications never work on Pixel 8.",
+			"Billing page shows the wrong invoice total."
+		].map((text) => ({
+			text,
+			date: void 0,
+			source: "sample"
+		})));
 		setFileName("sample-reviews.csv");
+		setAnalysis(null);
 		toast.success("Loaded 15 sample reviews");
 	}
 	async function runAnalysis() {
-		if (reviews.length === 0) {
-			toast.error("Upload a CSV or load the sample first");
+		if (filteredReviews.length === 0) {
+			toast.error("No reviews to analyze");
 			return;
 		}
 		setLoading(true);
 		setAnalysis(null);
 		try {
-			const result = await analyze({ data: { reviews } });
-			setAnalysis(result);
-			supabase.from("reports").insert({
-				title: reportTitle,
-				total_reviews: reviews.length,
-				severity: result.severity,
-				data: result
-			}).then(({ error }) => {
-				if (error) console.warn("Save failed", error);
-			});
-			toast.success("Crisis report generated");
+			const settings = JSON.parse(localStorage.getItem("crisisroom-ai-settings") || "{}");
+			const headers = {};
+			if (settings.geminiKey) headers["x-gemini-key"] = settings.geminiKey;
+			if (settings.openaiKey) headers["x-openai-key"] = settings.openaiKey;
+			if (settings.openrouterKey) headers["x-openrouter-key"] = settings.openrouterKey;
+			if (settings.provider) headers["x-ai-provider"] = settings.provider;
+			const originalFetch = window.fetch;
+			window.fetch = async (input, init) => {
+				return originalFetch(input, {
+					...init,
+					headers: {
+						...headers,
+						...init?.headers || {}
+					}
+				});
+			};
+			try {
+				const result = await analyze({ data: { reviews: filteredReviews } });
+				setAnalysis(result);
+				supabase.from("reports").insert({
+					title: reportTitle,
+					total_reviews: filteredReviews.length,
+					severity: result.severity,
+					data: result
+				}).then(({ error }) => {
+					if (error) console.warn("Save failed", error);
+				});
+				toast.success("Crisis report generated");
+			} finally {
+				window.fetch = originalFetch;
+			}
 		} catch (e) {
 			console.error(e);
 			toast.error(e instanceof Error ? e.message : "Analysis failed");
@@ -284,7 +478,7 @@ function Dashboard() {
 				position: "top-right",
 				richColors: true
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Header, {}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Header, { onSettingsClick: () => navigate({ to: "/settings" }) }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", {
 				className: "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-24",
 				children: [
@@ -294,14 +488,19 @@ function Dashboard() {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(UploadCard, {
 							fileRef,
 							fileName,
-							reviewsCount: reviews.length,
+							reviewsCount: filteredReviews.length,
+							totalReviewsCount: allReviews.length,
+							startDate,
+							endDate,
+							onStartDateChange: setStartDate,
+							onEndDateChange: setEndDate,
 							loading,
 							onPickFile: () => fileRef.current?.click(),
 							onFile: handleFile,
 							onLoadSample: loadSample,
 							onAnalyze: runAnalysis
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricsPanel, {
-							reviewsCount: reviews.length,
+							reviewsCount: filteredReviews.length,
 							analysis,
 							loading
 						})]
@@ -325,7 +524,7 @@ function Dashboard() {
 		]
 	});
 }
-function Header() {
+function Header({ onSettingsClick }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", {
 		className: "sticky top-0 z-30 backdrop-blur-xl bg-[oklch(0.16_0.02_260/0.7)] border-b border-border",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -348,12 +547,18 @@ function Header() {
 						children: "Incident Command Console"
 					})]
 				})]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "hidden sm:flex items-center gap-3",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 					className: "chip",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "h-1.5 w-1.5 rounded-full bg-success animate-pulse" }), "Gemini · Online"]
-				})
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "h-1.5 w-1.5 rounded-full bg-success animate-pulse" }), "AI · Online"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					variant: "ghost",
+					size: "sm",
+					onClick: onSettingsClick,
+					title: "Settings",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Settings, { className: "h-4 w-4" })
+				})]
 			})]
 		})
 	});
@@ -384,8 +589,9 @@ function Hero() {
 		]
 	});
 }
-function UploadCard({ fileRef, fileName, reviewsCount, loading, onPickFile, onFile, onLoadSample, onAnalyze }) {
+function UploadCard({ fileRef, fileName, reviewsCount, totalReviewsCount, startDate, endDate, onStartDateChange, onEndDateChange, loading, onPickFile, onFile, onLoadSample, onAnalyze }) {
 	const [drag, setDrag] = (0, import_react.useState)(false);
+	const showFiltered = totalReviewsCount > 0 && totalReviewsCount !== reviewsCount;
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "surface p-6",
 		children: [
@@ -396,7 +602,7 @@ function UploadCard({ fileRef, fileName, reviewsCount, loading, onPickFile, onFi
 					children: "Intake"
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 					className: "chip text-muted-foreground",
-					children: "CSV · Reviews · Tickets"
+					children: "CSV · XLSX · JSON · TXT"
 				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
@@ -422,16 +628,16 @@ function UploadCard({ fileRef, fileName, reviewsCount, loading, onPickFile, onFi
 						className: "text-center",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "font-medium",
-							children: "Drop CSV here or click to upload"
+							children: "Drop file here or click to upload"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "text-xs text-muted-foreground mt-1",
-							children: "Any CSV with a text/review/comment column"
+							children: "CSV, XLSX, JSON, or TXT with reviews"
 						})]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
 						ref: fileRef,
 						type: "file",
-						accept: ".csv,text/csv",
+						accept: ".csv,.xlsx,.xls,.json,.txt,text/csv,application/json,text/plain",
 						className: "hidden",
 						onChange: (e) => {
 							const f = e.target.files?.[0];
@@ -450,8 +656,55 @@ function UploadCard({ fileRef, fileName, reviewsCount, loading, onPickFile, onFi
 					})]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 					className: "chip text-muted-foreground",
-					children: [reviewsCount, " rows"]
+					children: [
+						totalReviewsCount,
+						" ",
+						showFiltered ? `→ ${reviewsCount}` : "",
+						"rows"
+					]
 				})]
+			}),
+			totalReviewsCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "mt-4 space-y-3",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-xs font-medium uppercase tracking-wider text-muted-foreground",
+						children: "Date Filter (Optional)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "grid grid-cols-2 gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
+							htmlFor: "start-date",
+							className: "text-xs mb-1 block",
+							children: "Start Date"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							id: "start-date",
+							type: "date",
+							value: startDate,
+							onChange: (e) => onStartDateChange(e.target.value),
+							className: "h-8 text-xs"
+						})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
+							htmlFor: "end-date",
+							className: "text-xs mb-1 block",
+							children: "End Date"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							id: "end-date",
+							type: "date",
+							value: endDate,
+							onChange: (e) => onEndDateChange(e.target.value),
+							className: "h-8 text-xs"
+						})] })]
+					}),
+					showFiltered && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "text-xs text-muted-foreground",
+						children: [
+							reviewsCount,
+							" of ",
+							totalReviewsCount,
+							" reviews match date range"
+						]
+					})
+				]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "mt-4 flex flex-col gap-2",
