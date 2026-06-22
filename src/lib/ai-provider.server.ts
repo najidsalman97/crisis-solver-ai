@@ -1,9 +1,13 @@
 import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
+import {
+  google,
+  createGoogleGenerativeAI,
+} from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { z } from "zod";
-import { Analysis, AnalysisSchema } from "./analyze.functions";
+import type { Analysis } from "./analysis-schema";
+import { AnalysisSchema } from "./analysis-schema";
 
 export type AIProvider = "gemini" | "openai" | "openrouter" | "auto";
 
@@ -27,10 +31,17 @@ export function getApiConfig(config: AIConfig): AIConfig {
 export function selectAIModel(config: AIConfig) {
   const { provider, geminiKey, openaiKey, openrouterKey } = config;
 
-  if (provider === "gemini" || (provider === "auto" && geminiKey)) {
-    if (!geminiKey) throw new Error("Gemini API key not provided");
-    return google("gemini-2.0-flash", { apiKey: geminiKey });
+if (provider === "gemini" || (provider === "auto" && geminiKey)) {
+  if (!geminiKey) {
+    throw new Error("Gemini API key not provided");
   }
+
+  const googleProvider = createGoogleGenerativeAI({
+    apiKey: geminiKey,
+  });
+
+  return googleProvider("gemini-2.0-flash");
+}
 
   if (provider === "openai" || (provider === "auto" && !geminiKey && openaiKey)) {
     if (!openaiKey) throw new Error("OpenAI API key not provided");
