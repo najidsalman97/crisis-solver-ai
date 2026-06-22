@@ -145,42 +145,30 @@ function Dashboard() {
       // Get API keys from localStorage
       const settings = JSON.parse(localStorage.getItem("crisisroom-ai-settings") || "{}");
 
-      // Prepare headers with API keys
-      const headers: Record<string, string> = {};
-      if (settings.geminiKey) headers["x-gemini-key"] = settings.geminiKey;
-      if (settings.openaiKey) headers["x-openai-key"] = settings.openaiKey;
-      if (settings.openrouterKey) headers["x-openrouter-key"] = settings.openrouterKey;
-      if (settings.provider) headers["x-ai-provider"] = settings.provider;
-
-      // Create a custom fetch wrapper to inject headers
-      const originalFetch = window.fetch;
-      window.fetch = async (input, init) => {
-        const newInit = {
-          ...init,
-          headers: { ...headers, ...(init?.headers || {}) },
-        };
-        return originalFetch(input, newInit);
-      };
-
-      try {
-        const result = await analyze({ data: { reviews: filteredReviews } });
-        setAnalysis(result);
-        // Persist (best-effort, don't block)
-        supabase
-          .from("reports")
-          .insert({
-            title: reportTitle,
-            total_reviews: filteredReviews.length,
-            severity: result.severity,
-            data: result as never,
-          })
-          .then(({ error }) => {
-            if (error) console.warn("Save failed", error);
-          });
-        toast.success("Crisis report generated");
-      } finally {
-        window.fetch = originalFetch;
-      }
+      // Call server function with API keys included in data
+      const result = await analyze({
+        data: {
+          reviews: filteredReviews,
+          geminiKey: settings.geminiKey || undefined,
+          openaiKey: settings.openaiKey || undefined,
+          openrouterKey: settings.openrouterKey || undefined,
+          provider: settings.provider || "auto",
+        },
+      });
+      setAnalysis(result);
+      // Persist (best-effort, don't block)
+      supabase
+        .from("reports")
+        .insert({
+          title: reportTitle,
+          total_reviews: filteredReviews.length,
+          severity: result.severity,
+          data: result as never,
+        })
+        .then(({ error }) => {
+          if (error) console.warn("Save failed", error);
+        });
+      toast.success("Crisis report generated");
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Analysis failed");

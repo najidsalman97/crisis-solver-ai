@@ -4,7 +4,7 @@ import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { t as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-BD801w1C.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-DKHtdAPy.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var styles_default = "/assets/styles-D4dg6pZk.css";
@@ -163,7 +163,7 @@ var Route$1 = createFileRoute("/settings")({
 	}] }),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-var $$splitComponentImporter = () => import("./routes-DlpVxpWe.mjs");
+var $$splitComponentImporter = () => import("./routes-Dp8xWOOo.mjs");
 var Route = createFileRoute("/")({
 	head: () => ({ meta: [{ title: "CrisisRoom AI — AI crisis response for product teams" }, {
 		name: "description",

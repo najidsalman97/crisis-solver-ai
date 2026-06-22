@@ -1,6 +1,6 @@
-import { f as getServerFnById, i as TSS_SERVER_FUNCTION, l as createServerFn } from "./esm-zB9EGFGL.mjs";
+import { f as getServerFnById, i as TSS_SERVER_FUNCTION, l as createServerFn } from "./esm-pxItHuF_.mjs";
 import { At as numberType, Mt as stringType, Ot as arrayType, jt as objectType, kt as enumType } from "../_libs/@ai-sdk/gateway+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/analyze.functions-C6FZidrO.js
+//#region node_modules/.nitro/vite/services/ssr/assets/analyze.functions-Cv4o1d16.js
 var createSsrRpc = (functionId) => {
 	const url = "/_serverFn/" + functionId;
 	const serverFnMeta = { id: functionId };
@@ -50,6 +50,17 @@ var AnalysisSchema = objectType({
 	statusPageUpdate: stringType(),
 	socialMediaUpdate: stringType()
 });
-var analyzeReviews = createServerFn({ method: "POST" }).inputValidator((input) => objectType({ reviews: arrayType(stringType()).min(1).max(2e3) }).parse(input)).handler(createSsrRpc("e6388d3d293d1c3a957936e0ad045131ee2a3b3e83d4c0b3cc3c45988b82654d"));
+var analyzeReviews = createServerFn({ method: "POST" }).inputValidator((input) => objectType({
+	reviews: arrayType(stringType()).min(1).max(2e3),
+	geminiKey: stringType().optional(),
+	openaiKey: stringType().optional(),
+	openrouterKey: stringType().optional(),
+	provider: enumType([
+		"auto",
+		"gemini",
+		"openai",
+		"openrouter"
+	]).optional()
+}).parse(input)).handler(createSsrRpc("e6388d3d293d1c3a957936e0ad045131ee2a3b3e83d4c0b3cc3c45988b82654d"));
 //#endregion
 export { analyzeReviews as n, AnalysisSchema as t };

@@ -1,6 +1,6 @@
 import { o as __toESM } from "../_runtime.mjs";
 import { D as isRedirect, _ as useRouter, g as useNavigate } from "../_libs/@tanstack/react-router+[...].mjs";
-import { n as analyzeReviews } from "./analyze.functions-C6FZidrO.mjs";
+import { n as analyzeReviews } from "./analyze.functions-Cv4o1d16.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as supabase } from "./client-UxEtH3WB.mjs";
@@ -11,7 +11,7 @@ import { t as require_jspdf_node_min } from "../_libs/jspdf.mjs";
 import { a as Paragraph, i as Packer, n as File, o as TextRun, r as HeadingLevel, t as AlignmentType } from "../_libs/docx.mjs";
 import { t as require_papaparse } from "../_libs/papaparse.mjs";
 import { n as utils, t as readSync } from "../_libs/xlsx.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-DlpVxpWe.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-Dp8xWOOo.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var import_jspdf_node_min = /* @__PURE__ */ __toESM(require_jspdf_node_min());
@@ -433,36 +433,23 @@ function Dashboard() {
 		setAnalysis(null);
 		try {
 			const settings = JSON.parse(localStorage.getItem("crisisroom-ai-settings") || "{}");
-			const headers = {};
-			if (settings.geminiKey) headers["x-gemini-key"] = settings.geminiKey;
-			if (settings.openaiKey) headers["x-openai-key"] = settings.openaiKey;
-			if (settings.openrouterKey) headers["x-openrouter-key"] = settings.openrouterKey;
-			if (settings.provider) headers["x-ai-provider"] = settings.provider;
-			const originalFetch = window.fetch;
-			window.fetch = async (input, init) => {
-				return originalFetch(input, {
-					...init,
-					headers: {
-						...headers,
-						...init?.headers || {}
-					}
-				});
-			};
-			try {
-				const result = await analyze({ data: { reviews: filteredReviews } });
-				setAnalysis(result);
-				supabase.from("reports").insert({
-					title: reportTitle,
-					total_reviews: filteredReviews.length,
-					severity: result.severity,
-					data: result
-				}).then(({ error }) => {
-					if (error) console.warn("Save failed", error);
-				});
-				toast.success("Crisis report generated");
-			} finally {
-				window.fetch = originalFetch;
-			}
+			const result = await analyze({ data: {
+				reviews: filteredReviews,
+				geminiKey: settings.geminiKey || void 0,
+				openaiKey: settings.openaiKey || void 0,
+				openrouterKey: settings.openrouterKey || void 0,
+				provider: settings.provider || "auto"
+			} });
+			setAnalysis(result);
+			supabase.from("reports").insert({
+				title: reportTitle,
+				total_reviews: filteredReviews.length,
+				severity: result.severity,
+				data: result
+			}).then(({ error }) => {
+				if (error) console.warn("Save failed", error);
+			});
+			toast.success("Crisis report generated");
 		} catch (e) {
 			console.error(e);
 			toast.error(e instanceof Error ? e.message : "Analysis failed");

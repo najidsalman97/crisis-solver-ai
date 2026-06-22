@@ -15,21 +15,10 @@ export interface AIConfig {
 }
 
 /**
- * Load API keys from request headers or environment
+ * Receive API configuration directly from client
  */
-export function getApiKeysFromRequest(request: Request): AIConfig {
-  // Check for API keys in request headers (sent from client)
-  const geminiKey = request.headers.get("x-gemini-key");
-  const openaiKey = request.headers.get("x-openai-key");
-  const openrouterKey = request.headers.get("x-openrouter-key");
-  const provider = (request.headers.get("x-ai-provider") as AIProvider) || "auto";
-
-  return {
-    provider,
-    geminiKey: geminiKey || undefined,
-    openaiKey: openaiKey || undefined,
-    openrouterKey: openrouterKey || undefined,
-  };
+export function getApiConfig(config: AIConfig): AIConfig {
+  return config;
 }
 
 /**
@@ -79,9 +68,8 @@ Respond with a detailed JSON analysis matching the exact schema provided. Be pre
  */
 export async function generateAnalysis(
   reviews: string[],
-  request: Request
+  config: AIConfig
 ): Promise<Analysis> {
-  const config = getApiKeysFromRequest(request);
   const model = selectAIModel(config);
 
   const reviewsText = reviews.join("\n---\n");

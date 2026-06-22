@@ -1,11 +1,11 @@
-import { i as TSS_SERVER_FUNCTION, l as createServerFn } from "./esm-zB9EGFGL.mjs";
-import { Mt as stringType, Ot as arrayType, jt as objectType } from "../_libs/@ai-sdk/gateway+[...].mjs";
-import { t as AnalysisSchema } from "./analyze.functions-C6FZidrO.mjs";
+import { i as TSS_SERVER_FUNCTION, l as createServerFn } from "./esm-pxItHuF_.mjs";
+import { Mt as stringType, Ot as arrayType, jt as objectType, kt as enumType } from "../_libs/@ai-sdk/gateway+[...].mjs";
+import { t as AnalysisSchema } from "./analyze.functions-Cv4o1d16.mjs";
 import { t as openai } from "../_libs/ai-sdk__openai+zod.mjs";
 import { t as generateObject } from "../_libs/ai.mjs";
 import { t as google } from "../_libs/ai-sdk__google.mjs";
 import { t as createOpenAICompatible } from "../_libs/ai-sdk__openai-compatible.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/analyze.functions-mUI7CjC7.js
+//#region node_modules/.nitro/vite/services/ssr/assets/analyze.functions-BNAfE-zR.js
 var createServerRpc = (serverFnMeta, splitImportFn) => {
 	const url = "/_serverFn/" + serverFnMeta.id;
 	return Object.assign(splitImportFn, {
@@ -14,20 +14,6 @@ var createServerRpc = (serverFnMeta, splitImportFn) => {
 		[TSS_SERVER_FUNCTION]: true
 	});
 };
-/**
-* Load API keys from request headers or environment
-*/
-function getApiKeysFromRequest(request) {
-	const geminiKey = request.headers.get("x-gemini-key");
-	const openaiKey = request.headers.get("x-openai-key");
-	const openrouterKey = request.headers.get("x-openrouter-key");
-	return {
-		provider: request.headers.get("x-ai-provider") || "auto",
-		geminiKey: geminiKey || void 0,
-		openaiKey: openaiKey || void 0,
-		openrouterKey: openrouterKey || void 0
-	};
-}
 /**
 * Get the appropriate AI model based on available keys
 */
@@ -66,8 +52,8 @@ Respond with a detailed JSON analysis matching the exact schema provided. Be pre
 /**
 * Generate analysis using AI
 */
-async function generateAnalysis(reviews, request) {
-	const model = selectAIModel(getApiKeysFromRequest(request));
+async function generateAnalysis(reviews, config) {
+	const model = selectAIModel(config);
 	const reviewsText = reviews.join("\n---\n");
 	const { object } = await generateObject({
 		model,
@@ -82,10 +68,26 @@ var analyzeReviews_createServerFn_handler = createServerRpc({
 	name: "analyzeReviews",
 	filename: "src/lib/analyze.functions.ts"
 }, (opts) => analyzeReviews.__executeServer(opts));
-var analyzeReviews = createServerFn({ method: "POST" }).inputValidator((input) => objectType({ reviews: arrayType(stringType()).min(1).max(2e3) }).parse(input)).handler(analyzeReviews_createServerFn_handler, async ({ data }, req) => {
+var analyzeReviews = createServerFn({ method: "POST" }).inputValidator((input) => objectType({
+	reviews: arrayType(stringType()).min(1).max(2e3),
+	geminiKey: stringType().optional(),
+	openaiKey: stringType().optional(),
+	openrouterKey: stringType().optional(),
+	provider: enumType([
+		"auto",
+		"gemini",
+		"openai",
+		"openrouter"
+	]).optional()
+}).parse(input)).handler(analyzeReviews_createServerFn_handler, async ({ data }) => {
 	if (!data.reviews || data.reviews.length === 0) throw new Error("No reviews provided for analysis");
 	try {
-		return await generateAnalysis(data.reviews, req);
+		return await generateAnalysis(data.reviews, {
+			geminiKey: data.geminiKey,
+			openaiKey: data.openaiKey,
+			openrouterKey: data.openrouterKey,
+			provider: data.provider || "auto"
+		});
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "AI analysis failed";
 		throw new Error(message);
